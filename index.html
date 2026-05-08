@@ -369,7 +369,23 @@
       .charts-grid { grid-template-columns: 1fr; }
       header { flex-direction: column; gap: 8px; text-align: center; }
     }
-  </style>
+  
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .refresh-btn {
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover { background: var(--gold); color: var(--black); }
+  .countdown { font-size: 0.7rem; color: var(--gray); margin-left: 4px; }
+</style>
 </head>
 <body>
 
@@ -378,7 +394,10 @@
     <div class="logo">OH MY GOLD</div>
     <div class="subtitle">Dashboard de Gestão do Rebranding</div>
   </div>
-  <div class="last-update" id="last-update">Carregando dados...</div>
+  <div class="header-right">
+    <div class="last-update" id="last-update">Carregando dados...</div>
+    <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Atualizar dados agora">&#x21bb; Atualizar</button>
+  </div>
 </header>
 
 <main>
@@ -823,6 +842,55 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
 
 // ---- INIT ----
 loadData();
+
+
+  // Auto-refresh every 30 minutes
+  const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 min in ms
+  let refreshTimer = null;
+  let countdownTimer = null;
+  let nextRefreshTime = null;
+
+  function startAutoRefresh() {
+    nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+    refreshTimer = setTimeout(() => { location.reload(); }, REFRESH_INTERVAL);
+    updateCountdown();
+    countdownTimer = setInterval(updateCountdown, 1000);
+  }
+
+  function updateCountdown() {
+    const remaining = Math.max(0, nextRefreshTime - Date.now());
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    const el = document.getElementById('last-update');
+    if (el && window._lastUpdateText) {
+      el.innerHTML = window._lastUpdateText + ' <span class="countdown">(próxima atualização em ' + mins + ':' + String(secs).padStart(2, '0') + ')</span>';
+    }
+  }
+
+  function manualRefresh() {
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.textContent = '⟳ Atualizando...'; btn.disabled = true; }
+    clearTimeout(refreshTimer);
+    clearInterval(countdownTimer);
+    setTimeout(() => location.reload(), 300);
+  }
+
+  // Override the last-update text setter to store it
+  const origLastUpdate = document.getElementById('last-update');
+  const observer = new MutationObserver(() => {
+    const el = document.getElementById('last-update');
+    if (el) {
+      const txt = el.textContent;
+      if (txt && !txt.includes('próxima') && !txt.includes('Carregando')) {
+        window._lastUpdateText = txt;
+      }
+    }
+  });
+  if (origLastUpdate) { observer.observe(origLastUpdate, { childList: true, subtree: true, characterData: true }); }
+
+  // Start auto-refresh after data loads
+  window.addEventListener('load', () => { setTimeout(startAutoRefresh, 2000); });
+
 </script>
 </body>
 </html>
