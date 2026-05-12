@@ -442,7 +442,7 @@
     </div>
 
     <!-- CHARTS -->
-    <div class="section-title">Análise de Status</div>
+    <div class="progress-section"><div class="progress-block"><div class="progress-header"><span class="progress-label">&#128197; Esperado ate Hoje</span><span class="progress-pct" id="pct-esperado">--%</span></div><div class="progress-bar-track"><div class="progress-bar-fill esperado" id="bar-esperado" style="width:0%"></div></div><div class="progress-hint" id="hint-esperado">Calculando...</div></div><div class="progress-block" style="margin-top:10px"><div class="progress-header"><span class="progress-label">&#10003; Real (Concluidos)</span><span class="progress-pct" id="pct-real">--%</span></div><div class="progress-bar-track"><div class="progress-bar-fill real" id="bar-real" style="width:0%"></div></div><div class="progress-hint" id="hint-real">Itens concluidos vs esperado</div></div></div><div class="section-title">Análise de Status</div>
     <div class="charts-grid">
       <div class="chart-card">
         <h3>Distribuição por Status</h3>
@@ -475,7 +475,7 @@
         <option value="Em andamento">Em andamento</option>
         <option value="Em revisão">Em revisão</option>
         <option value="Aguardando dependência">Aguardando dependência</option>
-        <option value="Concluído">Concluído</option>
+        <option value="Concluido">Concluido</option>
       </select>
       <select id="filter-prioridade">
         <option value="">Todas as prioridades</option>
@@ -516,7 +516,7 @@
 // CONFIGURAÇÃO — ajuste apenas estas variáveis
 // ============================================================
 const SHEET_ID = '1rMDU3NM-d17MBc1Wjz7lB5ciMUvMPZmqFdh50w4nUao';  // <<< substitua pelo ID da planilha
-const SHEET_GID = '0';             // gid da aba (0 = primeira aba)
+const SHEET_GID = '162327031';             // gid da aba (0 = primeira aba)
 // ============================================================
 
 const STATUS_CLASSES = {
@@ -524,7 +524,7 @@ const STATUS_CLASSES = {
   'Em andamento': 'status-andamento',
   'Em revisão': 'status-revisao',
   'Aguardando dependência': 'status-aguardando',
-  'Concluído': 'status-concluido',
+  'Concluido': 'status-concluido',
 };
 
 const PRIO_CLASSES = {
@@ -540,7 +540,7 @@ const STATUS_COLORS = {
   'Em andamento': '#3B82F6',
   'Em revisão': '#F59E0B',
   'Aguardando dependência': '#8B5CF6',
-  'Concluído': '#22C55E',
+  'Concluido': '#22C55E',
 };
 
 let allData = [];
@@ -593,7 +593,7 @@ async function loadData() {
   const cols = gviz.table?.cols || [];
 
   // Skip header row if it came through
-  allData = rows.map(r => r.c.map(c => c?.v ?? c?.f ?? '')).filter(r => r[1] && r[1] !== 'Categoria');
+  allData = rows.map(r => r.c.map(c => c?.v ?? c?.f ?? '')).filter(r => r[1] && r[3] !== 'ENTREGA' && String(r[0]).trim() !== '' && !isNaN(parseFloat(String(r[0]))));
 
   document.getElementById('last-update').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR');
   document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
@@ -613,7 +613,7 @@ function showError(msg) {
 
 // ---- RENDER ----
 function render() {
-  renderKPIs();
+  renderKPIs(); renderProgressBars();
   renderCharts();
   renderPillars();
   renderTable();
@@ -621,18 +621,18 @@ function render() {
 }
 
 function getStatusCount(data, status) {
-  return data.filter(r => (r[8] || '').trim() === status).length;
+  return data.filter(r => (r[6] || '').trim() === status).length;
 }
 
 function renderKPIs() {
   const total = allData.length;
-  const concluido = getStatusCount(allData, 'Concluído');
+  const concluido = getStatusCount(allData, 'Concluido');
   const andamento = getStatusCount(allData, 'Em andamento');
   const backlog = getStatusCount(allData, 'Backlog');
   const criticas = allData.filter(r => {
-    const p = (r[3] || '').toUpperCase();
-    const s = (r[8] || '').trim();
-    return (p.includes('A -') || p.startsWith('A')) && s !== 'Concluído';
+    const p = (r[5] || '').toUpperCase();
+    const s = (r[6] || '').trim();
+    return (p.includes('A -') || p.startsWith('A')) && s !== 'Concluido';
   }).length;
 
   document.getElementById('kpi-total').textContent = total;
@@ -648,7 +648,7 @@ let chartPillar = null;
 
 function renderCharts() {
   // Status donut
-  const statusLabels = ['Backlog', 'Em andamento', 'Em revisão', 'Aguardando dependência', 'Concluído'];
+  const statusLabels = ['Backlog', 'Em andamento', 'Em revisão', 'Aguardando dependência', 'Concluido'];
   const statusData = statusLabels.map(s => getStatusCount(allData, s));
   const statusColors = statusLabels.map(s => STATUS_COLORS[s] || '#ccc');
 
@@ -676,7 +676,7 @@ function renderCharts() {
     if (!cat) return;
     if (!cats[cat]) cats[cat] = { total: 0, done: 0 };
     cats[cat].total++;
-    if ((r[8] || '').trim() === 'Concluído') cats[cat].done++;
+    if ((r[6] || '').trim() === 'Concluido') cats[cat].done++;
   });
 
   const catLabels = Object.keys(cats).map(c => c.length > 25 ? c.substring(0, 22) + '...' : c);
@@ -689,7 +689,7 @@ function renderCharts() {
     data: {
       labels: catLabels,
       datasets: [{
-        label: '% Concluído',
+        label: '% Concluido',
         data: catPcts,
         backgroundColor: '#C9A84C',
         borderRadius: 4,
@@ -714,9 +714,9 @@ function renderPillars() {
     const cat = (r[1] || '').trim();
     if (!cat) return;
     if (!cats[cat]) cats[cat] = { total: 0, done: 0, andamento: 0, backlog: 0, outros: 0 };
-    const st = (r[8] || '').trim();
+    const st = (r[6] || '').trim();
     cats[cat].total++;
-    if (st === 'Concluído') cats[cat].done++;
+    if (st === 'Concluido') cats[cat].done++;
     else if (st === 'Em andamento') cats[cat].andamento++;
     else if (st === 'Backlog') cats[cat].backlog++;
     else cats[cat].outros++;
@@ -767,8 +767,8 @@ function getFilteredData() {
   return allData.filter(r => {
     if (search && !(r[2] || '').toLowerCase().includes(search) && !(r[1] || '').toLowerCase().includes(search)) return false;
     if (catFilter && (r[1] || '').trim() !== catFilter) return false;
-    if (statusFilter && (r[8] || '').trim() !== statusFilter) return false;
-    if (prioFilter && !(r[3] || '').toUpperCase().startsWith(prioFilter)) return false;
+    if (statusFilter && (r[6] || '').trim() !== statusFilter) return false;
+    if (prioFilter && !(r[5] || '').toUpperCase().startsWith(prioFilter)) return false;
     return true;
   });
 }
@@ -796,7 +796,7 @@ function renderTable() {
   }
 
   data.forEach(r => {
-    const status = (r[8] || '').trim();
+    const status = (r[6] || '').trim();
     const prio = (r[3] || '').trim();
     const prioKey = prio.substring(0, 1).toUpperCase();
     const statusClass = STATUS_CLASSES[status] || 'status-backlog';
@@ -805,8 +805,8 @@ function renderTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:#AAA;font-size:11px;width:36px">${escHtml(String(r[0] ?? ''))}</td>
-      <td><span class="categoria-badge">${escHtml(r[1] ?? '')}</span></td>
-      <td><div class="entrega-text">${escHtml(r[2] ?? '')}</div></td>
+      <td><span class="categoria-badge">${escHtml(r[4] ?? '')}</span></td>
+      <td><div class="entrega-text">${escHtml(r[3] ?? '')}</div></td>
       <td><span class="prio-badge ${prioClass}">${escHtml(prio)}</span></td>
       <td style="font-size:12px;color:#666">${escHtml(r[4] ?? '')}</td>
       <td style="font-size:12px">${escHtml(r[5] ?? '')}</td>
@@ -889,7 +889,7 @@ loadData();
   if (origLastUpdate) { observer.observe(origLastUpdate, { childList: true, subtree: true, characterData: true }); }
 
   // Start auto-refresh after data loads
-  window.addEventListener('load', () => { setTimeout(startAutoRefresh, 2000); });
+  function renderProgressBars(){const t=new Date();t.setHours(23,59,59,999);const n=allData.length;if(!n)return;let e=0;allData.forEach(r=>{const d=r[2];if(!d)return;let dt;if(d instanceof Date)dt=d;else if(typeof d==='string'&&d.includes('/')){const p=d.split('/');dt=p.length===2?new Date(2026,+p[1]-1,+p[0]):new Date(+p[2],+p[1]-1,+p[0]);}else if(typeof d==='number'){dt=new Date(1899,11,30);dt.setDate(dt.getDate()+d);}if(dt&&dt<=t)e++;});const rl=allData.filter(r=>(r[6]||'').trim()==='Concluido').length;const pe=Math.round(e/n*100),pr=Math.round(rl/n*100);['bar-esperado','bar-real'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.style.width=(i?pr:pe)+'%';});['pct-esperado','pct-real'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=(i?pr:pe)+'%';});const he=document.getElementById('hint-esperado');if(he)he.textContent=e+' de '+n+' deveriam estar concluidos ate hoje';const hr=document.getElementById('hint-real');if(hr){const df=pr-pe;let m='',c='';if(df>5){m=' Adiantado '+df+'pp';c='p-ahead';}else if(df<-5){m=' Atrasado '+Math.abs(df)+'pp';c='p-late';}else{m=' No prazo';c='p-ok';}hr.innerHTML=rl+' de '+n+' concluidos - <span class="'+c+'">'+m+'</span>';}}
 
 </script>
 </body>
