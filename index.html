@@ -459,7 +459,7 @@
     </div>
 
     <!-- PILLAR PROGRESS -->
-    <div class="section-title">Progresso por Pilar</div>
+    <div class="section-title">Progresso por Categoria</div>
     <div class="pillars-grid" id="pillars-grid"></div>
 
     <!-- TABLE -->
@@ -672,7 +672,7 @@ function renderCharts() {
   // Pillar progress bar chart
   const cats = {};
   allData.forEach(r => {
-    const cat = (r[1] || '').trim();
+    const cat = (r[4] || '').trim();
     if (!cat) return;
     if (!cats[cat]) cats[cat] = { total: 0, done: 0 };
     cats[cat].total++;
@@ -711,7 +711,7 @@ function renderCharts() {
 function renderPillars() {
   const cats = {};
   allData.forEach(r => {
-    const cat = (r[1] || '').trim();
+    const cat = (r[4] || '').trim();
     if (!cat) return;
     if (!cats[cat]) cats[cat] = { total: 0, done: 0, andamento: 0, backlog: 0, outros: 0 };
     const st = (r[6] || '').trim();
@@ -749,7 +749,7 @@ function renderPillars() {
 }
 
 function populateFilters() {
-  const cats = [...new Set(allData.map(r => (r[1] || '').trim()).filter(Boolean))].sort();
+  const cats = [...new Set(allData.map(r => (r[4] || '').trim()).filter(Boolean))].sort();
   const sel = document.getElementById('filter-categoria');
   cats.forEach(c => {
     const opt = document.createElement('option');
@@ -765,8 +765,8 @@ function getFilteredData() {
   const prioFilter = document.getElementById('filter-prioridade').value;
 
   return allData.filter(r => {
-    if (search && !(r[2] || '').toLowerCase().includes(search) && !(r[1] || '').toLowerCase().includes(search)) return false;
-    if (catFilter && (r[1] || '').trim() !== catFilter) return false;
+    if (search && !(r[3] || '').toLowerCase().includes(search) && !(r[4] || '').toLowerCase().includes(search)) return false;
+    if (catFilter && (r[4] || '').trim() !== catFilter) return false;
     if (statusFilter && (r[6] || '').trim() !== statusFilter) return false;
     if (prioFilter && !(r[5] || '').toUpperCase().startsWith(prioFilter)) return false;
     return true;
